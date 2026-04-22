@@ -1,1 +1,401 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Route Assign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#f5f4f1;--bg1:#ffffff;--bg2:#f0eeeb;--bg3:#e8e6e1;
+  --border:#e2dfd9;--border2:#d4d0c8;--text:#1a1917;--text2:#4a4740;--muted:#9a9690;
+  --accent:#c17b3f;--accent2:#e8956a;--green:#3a7d5c;--green-bg:#edf5f0;--green-bd:#c3ddd0;
+  --red:#b84040;--red-bg:#fdf0f0;--red-bd:#e8c3c3;--yellow:#9a7020;--yel-bg:#fdf8ec;--yel-bd:#e8d8a0;
+  --blue:#2e5fa3;--blue-bg:#eef3fc;--blue-bd:#bfd0ee;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow:0 4px 16px rgba(0,0,0,0.08),0 1px 4px rgba(0,0,0,0.04);
+  --r:14px;--r2:10px;--sans:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+body::before{content:'';position:fixed;inset:0;z-index:0;background-image:radial-gradient(ellipse 600px 400px at 80% 10%,rgba(193,123,63,0.06),transparent),radial-gradient(ellipse 500px 500px at 10% 80%,rgba(46,95,163,0.05),transparent);pointer-events:none;}
+.shell{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:20px 16px 80px;display:flex;flex-direction:column;gap:12px;}
+.hdr{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;animation:fadeUp .4s ease both;}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.hdr-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(193,123,63,0.25);flex-shrink:0;}
+.hdr-title{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);}
+.hdr-sub{font-size:11px;color:var(--muted);margin-top:1px;font-family:var(--mono);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .3s,box-shadow .3s;}
+.status-dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(58,125,92,.15);}
+.status-dot.err{background:var(--red);box-shadow:0 0 0 3px rgba(184,64,64,.15);}
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:18px;animation:fadeUp .4s ease both;}
+.card-label{font-size:10px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+input,textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);color:var(--text);font-family:var(--sans);font-size:14px;padding:11px 13px;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;-webkit-appearance:none;}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+input:focus,textarea:focus{border-color:var(--accent);background:var(--bg1);box-shadow:0 0 0 3px rgba(193,123,63,0.12);}
+textarea{font-family:var(--mono);font-size:13px;resize:none;height:120px;line-height:1.6;}
+.blind-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+.blind-row input{flex:1;font-family:var(--mono);font-size:12px;}
+.blind-found{font-size:11px;font-family:var(--mono);color:var(--green);font-weight:500;white-space:nowrap;flex-shrink:0;background:var(--green-bg);border:1px solid var(--green-bd);padding:4px 10px;border-radius:999px;display:none;}
+.blind-found.show{display:inline-block;}
+.route-bar{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:12px;}
+.route-bar .cnt{color:var(--green);font-weight:500;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--r2);font-family:var(--sans);font-weight:500;font-size:13px;padding:10px 18px;cursor:pointer;transition:all .18s;white-space:nowrap;letter-spacing:-.1px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn-primary{background:var(--text);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-primary:hover:not(:disabled){background:#2d2b28;box-shadow:var(--shadow);}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 14px rgba(193,123,63,.28);}
+.btn-accent:hover:not(:disabled){filter:brightness(1.05);box-shadow:0 6px 20px rgba(193,123,63,.35);}
+.btn-ghost{background:var(--bg2);color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover:not(:disabled){background:var(--bg3);}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:8px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.spin{display:none;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite;}
+.spin.show{display:inline-block;}
+@keyframes rot{to{transform:rotate(360deg);}}
+.msg{display:none;margin-top:10px;font-size:12px;padding:9px 12px;border-radius:var(--r2);font-family:var(--mono);line-height:1.5;}
+.msg.show{display:block;}
+.msg.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+.msg.err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+.msg.info{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);}
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.pill{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:500;font-family:var(--mono);border:1px solid transparent;letter-spacing:-.1px;}
+.pill-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+.pill-green{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
+.pill-red{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
+.pill-yellow{background:var(--yel-bg);color:var(--yellow);border-color:var(--yel-bd);}
+.pill-gray{background:var(--bg2);color:var(--muted);border-color:var(--border);}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sec-hdr-left{display:flex;align-items:center;gap:8px;}
+.chev{font-size:10px;color:var(--muted);transition:transform .22s;}
+.sec-hdr.col .chev{transform:rotate(-90deg);}
+.coll{overflow:hidden;transition:max-height .28s cubic-bezier(.4,0,.2,1);}
+.results{display:flex;flex-direction:column;gap:8px;}
+.ri{border-radius:var(--r2);border:1px solid var(--border);background:var(--bg1);overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow .2s;}
+.ri:hover{box-shadow:var(--shadow);}
+.ri.ok{border-color:var(--green-bd);background:#fafdfb;}
+.ri.warn{border-color:var(--red-bd);background:#fdfafa;}
+.ri.gray{border-color:var(--border);}
+.ri-top{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 8px;gap:10px;}
+.ri-tno{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tag{font-size:10px;font-weight:600;letter-spacing:.5px;padding:3px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;border:1px solid transparent;}
+.tag-green{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
+.tag-red{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
+.tag-yellow{background:var(--yel-bg);color:var(--yellow);border-color:var(--yel-bd);}
+.tag-gray{background:var(--bg2);color:var(--muted);border-color:var(--border);}
+.ri-body{padding:0 14px 11px;display:flex;flex-direction:column;gap:4px;}
+.kv{display:flex;align-items:baseline;gap:8px;}
+.k{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);min-width:64px;flex-shrink:0;letter-spacing:.3px;}
+.v{font-family:var(--mono);font-size:12px;color:var(--text2);word-break:break-all;}
+.v.g{color:var(--green);font-weight:500;}
+.v.r{color:var(--red);font-weight:500;}
+.v.y{color:var(--yellow);}
+.divider{height:1px;background:var(--border);margin:6px 0;}
+.addr-box{margin-top:6px;padding:8px 11px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:8px;font-size:11px;color:var(--red);font-family:var(--mono);line-height:1.6;}
+.sec-title{font-size:13px;font-weight:600;color:var(--text);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.card:nth-child(1){animation-delay:.05s;}
+.card:nth-child(2){animation-delay:.1s;}
+.card:nth-child(3){animation-delay:.15s;}
+</style>
+</head>
+<body>
+<div class="shell">
 
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-icon">📦</div>
+      <div>
+        <div class="hdr-title">Route Assign</div>
+        <div class="hdr-sub" id="hdrSub">未登录</div>
+      </div>
+    </div>
+    <div class="status-dot" id="dot"></div>
+  </div>
+
+  <div class="card" id="loginCard">
+    <div class="card-label">账号登录</div>
+    <div class="row2">
+      <input id="uname" placeholder="Username" autocomplete="username"/>
+      <input id="pwd" type="password" placeholder="Password" autocomplete="current-password"/>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnLogin">登录</button>
+      <div class="spin" id="loginSpin"></div>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <div class="card" id="runCard" style="display:none">
+    <div class="card-label">执行分配</div>
+    <div class="route-bar">
+      路线表已加载
+      <span class="cnt" id="routeCnt">—</span>
+      条记录
+      <button class="btn btn-ghost btn-sm" id="btnReload" style="margin-left:4px">重载</button>
+    </div>
+    <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">
+      Blind 批次 · Wrong Address 专用
+    </div>
+    <div class="blind-row">
+      <input id="blindInput" placeholder="自动查询，或手动输入 ATSUB-XXXX"/>
+      <span class="blind-found" id="blindFound">已找到</span>
+    </div>
+    <div style="font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">
+      输入单号
+    </div>
+    <textarea id="tnoInput" placeholder="每行一个，或逗号 / 空格分隔…"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-accent" id="btnRun">▶ 执行分配</button>
+      <button class="btn btn-ghost" id="btnClear">清空</button>
+      <div class="spin" id="runSpin"></div>
+    </div>
+    <div class="msg" id="runMsg"></div>
+  </div>
+
+  <div id="resultsWrap" style="display:none">
+
+    <!-- Summary -->
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-hdr" id="sumHdr">
+        <div class="sec-hdr-left"><span class="sec-title">汇总</span></div>
+        <span class="chev">▼</span>
+      </div>
+      <div class="coll" id="sumBody">
+        <div class="pills" id="sumPills"></div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+
+    <!-- OK -->
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-hdr" id="okHdr">
+        <div class="sec-hdr-left">
+          <span class="sec-title" style="color:var(--green)">可送包裹</span>
+          <span class="pill pill-green" id="okCnt">0</span>
+        </div>
+        <span class="chev">▼</span>
+      </div>
+      <div class="coll" id="okBody">
+        <div class="results" id="okList"></div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+
+    <!-- Wrong Address -->
+    <div class="card" style="margin-bottom:0">
+      <div class="sec-hdr" id="wHdr">
+        <div class="sec-hdr-left">
+          <span class="sec-title" style="color:var(--red)">Wrong Address</span>
+          <span class="pill pill-red" id="wCnt">0</span>
+        </div>
+        <span class="chev">▼</span>
+      </div>
+      <div class="coll" id="wBody">
+        <div class="results" id="wList"></div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+
+    <!-- N/A -->
+    <div class="card">
+      <div class="sec-hdr" id="naHdr">
+        <div class="sec-hdr-left">
+          <span class="sec-title" style="color:var(--muted)">N / A</span>
+          <span class="pill pill-gray" id="naCnt">0</span>
+        </div>
+        <span class="chev">▼</span>
+      </div>
+      <div class="coll" id="naBody">
+        <div class="results" id="naList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function showMsg(el,txt,type){el.textContent=txt;el.className=`msg show ${type}`;}
+function hideMsg(el){el.className='msg';}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function normTnos(raw){
+  const arr=(raw||'').replace(/,/g,'\n').split(/\s+/).map(x=>x.trim()).filter(Boolean);
+  const seen=new Set(),out=[];
+  for(const t of arr)if(!seen.has(t)){seen.add(t);out.push(t);}
+  return out;
+}
+
+function initCollapse(hdrId,bodyId){
+  const hdr=$(hdrId),body=$(bodyId);
+  body.style.maxHeight=body.scrollHeight+'px';
+  hdr.addEventListener('click',()=>{
+    const col=hdr.classList.toggle('col');
+    body.style.maxHeight=col?'0':body.scrollHeight+'px';
+  });
+}
+
+async function doLogin(){
+  const u=$('uname').value.trim(),p=$('pwd').value;
+  if(!u||!p){showMsg($('loginMsg'),'请输入账号密码','err');return;}
+  $('btnLogin').disabled=true;
+  $('loginSpin').classList.add('show');
+  hideMsg($('loginMsg'));
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const j=await r.json();
+    if(j.ok){
+      $('hdrSub').textContent=j.user||u;
+      $('dot').className='status-dot on';
+      $('loginCard').style.display='none';
+      $('runCard').style.display='block';
+      $('routeCnt').textContent=j.route_cnt!=null?j.route_cnt.toLocaleString():'?';
+      if(!j.route_ok)showMsg($('runMsg'),`路线表: ${j.route_msg}`,'err');
+    }else{
+      showMsg($('loginMsg'),j.msg||'登录失败','err');
+      $('dot').className='status-dot err';
+    }
+  }catch(e){showMsg($('loginMsg'),'网络错误','err');}
+  $('btnLogin').disabled=false;
+  $('loginSpin').classList.remove('show');
+}
+
+async function doReload(){
+  $('btnReload').disabled=true;
+  try{
+    const r=await fetch('/api/reload_routes',{method:'POST'});
+    const j=await r.json();
+    $('routeCnt').textContent=j.count!=null?j.count.toLocaleString():'?';
+    showMsg($('runMsg'),j.msg,j.ok?'ok':'err');
+  }catch(e){showMsg($('runMsg'),'重载失败','err');}
+  $('btnReload').disabled=false;
+}
+
+function buildCard(r){
+  const isOk=r.type==='OK';
+  const isWrong=r.type==='WRONG_ADDRESS';
+  const noB=r.type==='WRONG_NO_BATCH';
+  const noMatch=r.type==='NO_MATCH';
+  const isNA=r.type==='NA';
+
+  const cls=isOk?'ok':(isWrong||noB?'warn':'gray');
+
+  let tagLabel,tagCls;
+  if(isOk){tagLabel='✓ 可送';tagCls='tag-green';}
+  else if(isWrong){tagLabel='✕ Wrong Addr';tagCls='tag-red';}
+  else if(noB){tagLabel='✕ 无Blind批次';tagCls='tag-red';}
+  else if(noMatch){tagLabel='? 无路线';tagCls='tag-yellow';}
+  else if(isNA){tagLabel='— NA';tagCls='tag-gray';}
+  else{tagLabel='✕ Error';tagCls='tag-gray';}
+
+  let rows=`
+    <div class="kv"><span class="k">warehouse</span><span class="v">${escH(r.warehouse||'—')}</span></div>
+    <div class="kv"><span class="k">zip</span><span class="v">${escH(r.zip||'—')}</span></div>
+    <div class="kv"><span class="k">state</span><span class="v">${escH(r.state!=null?r.state:'—')}</span></div>
+    <div class="kv"><span class="k">from</span><span class="v">${escH(r.from_driver!=null?r.from_driver:'—')}</span></div>
+  `;
+
+  if(isOk){
+    rows+=`<div class="kv"><span class="k">→ to</span><span class="v g">${escH(r.to_driver||'—')}</span></div>`;
+    if(r.status_updated)rows+=`<div class="kv"><span class="k">202</span><span class="v g">✓ 已转</span></div>`;
+  }
+
+  if(isWrong){
+    rows+=`<div class="kv"><span class="k">→ blind</span><span class="v g">${escH(r.batch_no||'—')}</span></div>`;
+    if(r.to_driver)rows+=`<div class="kv"><span class="k">→ 998</span><span class="v g">${escH(r.to_driver)}</span></div>`;
+    if(r.batch_name)rows+=`<div class="kv"><span class="k">batch</span><span class="v">${escH(r.batch_name)}</span></div>`;
+    if(r.address)rows+=`<div class="addr-box">📍 ${escH(r.address)}<br>${escH(r.consignee||'')}</div>`;
+  }
+
+  if(noB&&r.address)rows+=`<div class="addr-box">⚠ ${escH(r.address)}<br>${escH(r.consignee||'')}</div>`;
+
+  rows+=`<div class="divider"></div>
+    <div class="kv"><span class="k">msg</span><span class="v" style="color:var(--muted);font-size:11px">${escH(r.message)}</span></div>`;
+
+  return `
+    <div class="ri ${cls}">
+      <div class="ri-top">
+        <div class="ri-tno">${escH(r.tno)}</div>
+        <span class="tag ${tagCls}">${tagLabel}</span>
+      </div>
+      <div class="ri-body">${rows}</div>
+    </div>
+  `;
+}
+
+async function doRun(){
+  const raw=$('tnoInput').value;
+  if(!normTnos(raw).length){showMsg($('runMsg'),'请输入单号','err');return;}
+  $('btnRun').disabled=true;
+  $('runSpin').classList.add('show');
+  hideMsg($('runMsg'));
+  $('resultsWrap').style.display='none';
+  try{
+    const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tnos:raw,blind_batch:$('blindInput').value.trim()})});
+    const j=await r.json();
+    if(!j.ok){showMsg($('runMsg'),j.msg||'执行失败','err');return;}
+
+    const s=j.summary;
+    $('sumPills').innerHTML=`
+      <span class="pill pill-blue">总 ${s.total}</span>
+      <span class="pill pill-green">可送 ${s.ok}</span>
+      <span class="pill pill-red">Wrong ${s.wrong_address+s.no_batch}</span>
+      <span class="pill pill-yellow">无路线 ${s.no_match}</span>
+      <span class="pill pill-gray">NA ${s.na}</span>
+      <span class="pill pill-gray">ERR ${s.error}</span>
+    `;
+
+    const okItems    = j.results.filter(r=>r.type==='OK');
+    const otherItems = j.results.filter(r=>!['OK','WRONG_ADDRESS','WRONG_NO_BATCH','NA'].includes(r.type));
+    const wItems     = j.results.filter(r=>['WRONG_ADDRESS','WRONG_NO_BATCH'].includes(r.type));
+    const naItems    = j.results.filter(r=>r.type==='NA');
+
+    $('okCnt').textContent=okItems.length+otherItems.length;
+    $('wCnt').textContent=wItems.length;
+    $('naCnt').textContent=naItems.length;
+    $('okList').innerHTML=[...okItems,...otherItems].map(buildCard).join('');
+    $('wList').innerHTML=wItems.map(buildCard).join('');
+    $('naList').innerHTML=naItems.map(buildCard).join('');
+
+    $('resultsWrap').style.display='block';
+    setTimeout(()=>{
+      initCollapse('sumHdr','sumBody');
+      initCollapse('okHdr','okBody');
+      initCollapse('wHdr','wBody');
+      initCollapse('naHdr','naBody');
+    },60);
+
+    const found=j.results.find(r=>r.batch_no);
+    if(found){
+      $('blindInput').value=found.batch_no;
+      $('blindFound').textContent=found.batch_name||'已找到';
+      $('blindFound').classList.add('show');
+    }
+
+    showMsg($('runMsg'),`完成 · 可送 ${s.ok} · Wrong ${s.wrong_address} · 无批次 ${s.no_batch} · 无路线 ${s.no_match} · NA ${s.na}`,'ok');
+
+  }catch(e){showMsg($('runMsg'),'网络错误: '+e.message,'err');}
+  $('btnRun').disabled=false;
+  $('runSpin').classList.remove('show');
+}
+
+$('btnLogin').addEventListener('click',doLogin);
+$('btnReload').addEventListener('click',doReload);
+$('btnRun').addEventListener('click',doRun);
+$('btnClear').addEventListener('click',()=>{
+  $('tnoInput').value='';
+  $('resultsWrap').style.display='none';
+  hideMsg($('runMsg'));
+});
+[$('uname'),$('pwd')].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
+</script>
+</body>
+</html>
